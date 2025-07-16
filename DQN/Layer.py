@@ -3,8 +3,8 @@ class Layer:
         self.weights = None
         self.biases = None
 
-    def forward(self, inputs):
+    def forwardPropagation(self, inputs):
         pass
 
-    def back(self, output):
+    def backPropagation(self, output):
         pass
