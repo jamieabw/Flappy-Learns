@@ -1,5 +1,9 @@
 import numpy as np
 import pygame
+from DQN.dense import DenseLayer
+from DQN.relu import Relu
+from DQN.loss import meanSquaredError
+import copy
 SIZE = (50,30)
 
 class Bird:
@@ -7,7 +11,14 @@ class Bird:
         self.width = SIZE[0]
         self.height = SIZE[1]
         self.x, self.y = (screenSize[0] // 6, screenSize[1] // 2)
-        self.intelligence = None
+        self.intelligence = [
+            DenseLayer(3, 16),
+            Relu(),
+            DenseLayer(16,24),
+            Relu(),
+            DenseLayer(24,2)
+        ]
+        self.setTargetIntelligence()
 
     def flap(self, velocity):
         if velocity > 0:
@@ -15,6 +26,9 @@ class Bird:
         elif velocity > -14:
             return velocity - 3
         return velocity
+    
+    def setTargetIntelligence(self):
+        self.targetIntelligence = copy.deepcopy(self.intelligence)
     
     def getState(self, pipe, velocity):
         x = pipe.x + pipe.width

@@ -15,6 +15,7 @@ class Flappy:
         self.running = True
         self.generation = 0
         self.pipeToDetect = None
+        self.experienceReplayBuffer = []
         self.font = pygame.font.SysFont(None, 64)
         self.ground = pygame.Rect(0, self.height - 10, self.width, 10)
         self.roof = pygame.Rect(0, 0, self.width, 10)
@@ -47,10 +48,24 @@ class Flappy:
         self.display.fill((255,255,255))
 
     def update(self):
+        done = False
         self.velocity += (ACCELERATION / 60)
         self.bird.y += self.velocity
             #print(2)
         print(self.bird.getState(self.pipeToDetect, self.velocity))
+        currentState = self.bird.getState(self.pipeToDetect, self.velocity)
+        action = self.bird.getAction()
+        # this is where the action will be eventually dealt with, and reward will be given
+        reward = None
+        if self.handleCollisions():
+            reward = -1
+            done = True
+        if action == "flap":
+            pass
+        else:
+            pass
+        nextState = self.bird.getState(self.pipeToDetect, self.velocity)
+        self.experienceReplayBuffer.append((currentState, action, reward, nextState, done)) # add to the buffer for training
         
         for pipe in self.pipes:
             if pipe.x <= 0 - pipe.width:
@@ -58,10 +73,7 @@ class Flappy:
                 self.pipes[0].x -= 10 
 
                 continue
-                #print(self.pipes)
-                # need to remove the two pipes here
             pipe.x -= 10
-        self.handleCollisions()
         if self.pipes and not self.pipes[0].scored:
             if self.bird.x >= self.pipes[0].x + self.pipes[0].width:
                 self.pipes[0].scored = True
@@ -70,15 +82,18 @@ class Flappy:
                 self.score += 1
                 self.pointFlag = True
                 print(self.score)
+        if done:
+            self.start()
 
     def handleCollisions(self):
         birdRect = self.bird.getRect()
         for pipe in self.pipes:
             pipeRect = pipe.getRect()
             if birdRect.colliderect(pipeRect):
-                self.start()
+                return True
         if birdRect.colliderect(self.ground) or birdRect.colliderect(self.roof):
-            self.start()
+            return True
+        return False
 
     def draw(self):
         self.display.fill((220,220,220))

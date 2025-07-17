@@ -5,7 +5,7 @@
 ## How it works
 
 - Utilises a **Deep Q-Network (DQN)** to approximate the optimal Q-function.
-- The **previous 5 frames** are stacked and used as input to the network.
+- The **velocty and distances to pipes** are used as input to the network.
 - The network outputs Q-values for two actions: **flap or fall**.
 - The action with the highest Q-value is chosen. For example, if the outputs are (2, 1) for flap and fall respectively, the agent will choose to flap.
 - Every state-action pair, along with its reward and the next state, is stored in an **experience replay buffer**.
