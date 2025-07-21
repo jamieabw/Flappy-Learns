@@ -9,7 +9,7 @@ class DenseLayer(Layer):
         self.input = input
         return np.dot(self.weights, self.input) + self.biases
     
-    def backPropagation(self, dOutput, learningRate=1e-3):
+    def backPropagation(self, dOutput, learningRate=1e-4):
         dWeights = np.outer(dOutput, self.input)
         dBiases = dOutput
         dInput = np.dot(self.weights.T, dOutput)

@@ -10,13 +10,14 @@ SIZE = (50,30)
 BATCH_SIZE = 64
 GAMMA = 0.99
 class Bird:
+    losses = []
     def __init__(self, screenSize, intelligence=None, targetIntelligence=None, experienceBuffer=None):
         self.width = SIZE[0]
         self.height = SIZE[1]
         self.x, self.y = (screenSize[0] // 6, screenSize[1] // 2)
         if intelligence is None:
             self.intelligence = [
-                DenseLayer(3, 24),
+                DenseLayer(4, 24),
                 LeakyRelu(),
                 DenseLayer(24,18),
                 LeakyRelu(),
@@ -36,7 +37,7 @@ class Bird:
     def flap(self, velocity):
         return -9
     
-    def learn(self, buffer):
+    def learn(self, buffer, double=True):
         if len(buffer) < 1000:
             #print(len(buffer))
             return
@@ -44,10 +45,13 @@ class Bird:
         losses = []
         for experience in batch:
             state, action, reward, nextState, done = experience
-            if reward >= 3:
-                print(experience)
             qValues = self.getAction(state)
-            nextQValue = np.max(self.getAction(nextState, target=True))
+            if double:
+                bestAction = np.argmax(self.getAction(nextState))
+                targetQ = self.getAction(nextState, target=True)
+                nextQValue = targetQ[bestAction]
+            else:
+                nextQValue = np.max(self.getAction(nextState, target=True))
             if done:
                 y = reward
             else:
@@ -62,7 +66,7 @@ class Bird:
             #print(output)
             for layer in reversed(self.intelligence):
                 output = layer.backPropagation(np.nan_to_num(output, nan=0.0))
-        #print(np.mean(losses))
+        Bird.losses.append(np.mean(losses))
     
     def setTargetIntelligence(self):
         print("Updated target network")
@@ -72,8 +76,9 @@ class Bird:
         x = pipe.x + pipe.width
         y = pipe.y + (pipe.height) + 125
         dx, dy = abs(self.x - x) / 1000, abs(self.y - y)/800
+        yPos = self.y / 800
         velocity = velocity / 15
-        return np.array([dx, dy, velocity])
+        return np.array([dx, dy, velocity, yPos])
     
     def getAction(self, state, target=False):
         if not target:

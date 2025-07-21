@@ -8,5 +8,5 @@ class Activation:
         self.input = input
         return self.function(self.input)
     
-    def backPropagation(self, dOutput, learningRate=5e-4):
+    def backPropagation(self, dOutput, learningRate=1e-4):
         return np.multiply(dOutput, self.dFunction(self.input))
