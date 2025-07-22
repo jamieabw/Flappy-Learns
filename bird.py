@@ -11,6 +11,7 @@ BATCH_SIZE = 64
 GAMMA = 0.99
 class Bird:
     losses = []
+    learningRate = 3e-4
     def __init__(self, screenSize, intelligence=None, targetIntelligence=None, experienceBuffer=None):
         self.width = SIZE[0]
         self.height = SIZE[1]
@@ -22,6 +23,7 @@ class Bird:
                 DenseLayer(24,18),
                 LeakyRelu(),
                 DenseLayer(18,2)
+
             ]
             self.setTargetIntelligence()
         else:
@@ -56,6 +58,7 @@ class Bird:
                 y = reward
             else:
                 y = reward + (GAMMA * nextQValue)
+            nextQValue = np.clip(nextQValue, -1.0, 1.0)
             targetQValues = np.copy(qValues)
             targetQValues[action] = y
             #print(targetQValues)
@@ -65,7 +68,7 @@ class Bird:
             output = error
             #print(output)
             for layer in reversed(self.intelligence):
-                output = layer.backPropagation(np.nan_to_num(output, nan=0.0))
+                output = layer.backPropagation(np.nan_to_num(output, nan=0.0), learningRate=Bird.learningRate)
         Bird.losses.append(np.mean(losses))
     
     def setTargetIntelligence(self):

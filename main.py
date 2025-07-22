@@ -8,18 +8,20 @@ import threading
 SCREEN_DIMENSIONS = (1000, 800)
 FPS = 30
 ACCELERATION = 10
-EPSILON = 0.7
-EPSILON_DECAY = 0.98
+EPSILON = 0.9
+EPSILON_DECAY = 0.99
 EPSILON_MIN = 0.01
 
 class Flappy:
+    playing = True
+    demonstrationLearning = False # not implemented yet
     def __init__(self):
         self.width = SCREEN_DIMENSIONS[0]
         self.height = SCREEN_DIMENSIONS[1]
         self.display = pygame.display.set_mode((self.width, self.height))
         self.running = True
         self.generation = 0
-        self.epsilon = EPSILON + EPSILON_DECAY
+        self.epsilon = EPSILON #+ EPSILON_DECAY
         self.pipeToDetect = None
         self.experienceReplayBuffer = []
         self.font = pygame.font.SysFont(None, 64)
@@ -57,7 +59,11 @@ class Flappy:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     #self.velocity = self.bird.flap(self.velocity)
-                    self.startStatsThread()
+                    if Flappy.playing:
+                        self.velocity = self.bird.flap(self.velocity)
+                        
+                    else:
+                        self.startStatsThread()
             if event.type == pygame.USEREVENT:
                 self.spawnPipes()
 
@@ -71,7 +77,10 @@ class Flappy:
         self.pointFlag = False
         self.epsilon = max(EPSILON_MIN, self.epsilon * EPSILON_DECAY)
         self.totalReward = 0
+        self.frame = 0
         #print(self.epsilon)
+        if Flappy.demonstrationLearning and self.generation == 10:
+            Flappy.playing = False
         if self.generation == 1:
             self.bird = Bird((self.width, self.height))
         elif self.generation % 35 == 0:
@@ -80,6 +89,8 @@ class Flappy:
             self.bird = Bird((self.width, self.height), self.bird.intelligence, self.bird.targetIntelligence, experienceBuffer=self.experienceReplayBuffer)
         self.spawnPipes()
         self.pipeToDetect = self.pipes[0]
+        if self.generation != 0 and self.generation % 350:
+            Bird.learningRate = max(1e-6, Bird.learningRate * 0.5)
         self.clock = pygame.time.Clock()
         self.display.fill((255,255,255))
         if len(self.experienceReplayBuffer) > 50000:
@@ -87,6 +98,7 @@ class Flappy:
 
     def update(self):
         done = False
+        self.reward = 0
             #print(2)
         #print(self.bird.getState(self.pipeToDetect, self.velocity))
         currentState = self.bird.getState(self.pipeToDetect, self.velocity)
@@ -94,26 +106,27 @@ class Flappy:
         #print(currentState)
         if random.random() > self.epsilon:
             action = np.argmax(self.bird.getAction(currentState))
-            #print("random")
+            if action == 1: print("chosen flap")
         else:
             action = random.choice([0,1])
+            #print(f"random action: {action}")
         #print(action)
         # this is where the action will be eventually dealt with, and reward will be given
         #print(action)
-        if action == 1:
+        if action == 1 and not Flappy.playing:
             self.velocity = self.bird.flap(self.velocity)
             #print("FLAP")
         else:
             pass
         self.velocity += (ACCELERATION / FPS)
         self.bird.y += self.velocity
-        reward = 0
         if self.handleCollisions():
-            reward = -10
+            self.reward += -50
             done = True
         else:
-            reward = max(0,1 - currentState[0]) #closer to point line of pipe, bigger reward
-        reward -= 0.005 * currentState[1] # closer to centre of gap, bigger reward
+            self.reward = 0.1
+            #self.reward += max(0,1 - currentState[0]) #closer to point line of pipe, bigger reward
+        #]self.reward -= (0.005 * currentState[1]) # closer to centre of gap, bigger reward
 
         for pipe in self.pipes:
             if pipe.x <= 0 - pipe.width:
@@ -128,15 +141,16 @@ class Flappy:
                 self.pipes[1].scored = True
                 self.pipeToDetect = self.pipes[2]
                 self.score += 1
-                reward += 10
+                self.reward += 10
                 self.pointFlag = True
                 #print(reward)
         nextState = self.bird.getState(self.pipeToDetect, self.velocity)
         #print(reward)
-        self.experienceReplayBuffer.append((currentState, action, reward, nextState, done)) # add to the buffer for training
-        
-        self.totalReward += reward
+        #print(self.reward)
+        self.experienceReplayBuffer.append((currentState, action, self.reward, nextState, done)) # add to the buffer for training
+        self.totalReward += self.reward
         self.bird.learn(self.experienceReplayBuffer)
+        self.frame += 1
         if done:
             print(self.totalReward)
             self.start()
@@ -148,6 +162,7 @@ class Flappy:
             if birdRect.colliderect(pipeRect):
                 return True
         if birdRect.colliderect(self.ground) or birdRect.colliderect(self.roof):
+            self.reward -= 10
             return True
         return False
 
