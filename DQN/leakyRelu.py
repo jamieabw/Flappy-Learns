@@ -2,7 +2,7 @@ from DQN.activation import Activation
 import numpy as np
 
 class LeakyRelu(Activation):
-    def __init__(self, alpha=0.01):
+    def __init__(self, alpha=0.03):
         """
         Leaky ReLU activation function:
             f(x) = x if x > 0 else alpha * x

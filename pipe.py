@@ -1,6 +1,6 @@
 import pygame
 # will implement randomness by choosing random y point, using a fixed displacement to get the other point 
-DEFAULT_PIPE_WIDTH = 140
+DEFAULT_PIPE_WIDTH = 150
 class Pipe:
     width = DEFAULT_PIPE_WIDTH
     def __init__(self, screenSize, y, top=True):

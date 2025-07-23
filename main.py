@@ -13,7 +13,8 @@ EPSILON_DECAY = 0.99
 EPSILON_MIN = 0.01
 
 class Flappy:
-    playing = True
+    playing = False
+    rewards = []
     demonstrationLearning = False # not implemented yet
     def __init__(self):
         self.width = SCREEN_DIMENSIONS[0]
@@ -33,15 +34,23 @@ class Flappy:
 
     def displayStats(self):
         try:
-            if len(Bird.losses) == 0:
+            """if len(Bird.losses) == 0:
                 print("Not enough data yet")
-                return
-            plt.figure(figsize=(8,5))
-            plt.plot(Bird.losses)
-            plt.title("Losses")
-            plt.xlabel("Training Episode")
-            plt.ylabel("Loss Value")
-            plt.grid(True)
+                return"""
+            fig, axs = plt.subplots(2, 1, figsize=(10, 8))
+            axs[0].plot(Bird.losses, label='Loss', color='blue')
+            axs[0].set_title("Losses")
+            axs[0].set_xlabel("Episode")
+            axs[0].set_ylabel("Loss")
+            axs[0].grid(True)
+            axs[0].legend()
+            axs[1].plot(Flappy.rewards, label='Reward', color='orange')
+            axs[1].set_title("Rewards")
+            axs[1].set_xlabel("Episode")
+            axs[1].set_ylabel("Reward")
+            axs[1].grid(True)
+            axs[1].legend()
+            plt.tight_layout()
             plt.show()
             plt.close()
         except Exception as x:
@@ -49,8 +58,7 @@ class Flappy:
             return
 
     def startStatsThread(self):
-        thread = threading.Thread(target=self.displayStats)
-        thread.start()
+        self.displayStats()
 
     def eventHandler(self):
         for event in pygame.event.get():
@@ -80,10 +88,16 @@ class Flappy:
         self.frame = 0
         #print(self.epsilon)
         if Flappy.demonstrationLearning and self.generation == 10:
+            """
+            doesnt work yet
+            """
             Flappy.playing = False
         if self.generation == 1:
             self.bird = Bird((self.width, self.height))
         elif self.generation % 35 == 0:
+            """
+            every 35th generation, update target network
+            """
             self.bird = Bird((self.width, self.height), self.bird.intelligence, experienceBuffer=self.experienceReplayBuffer)
         else:
             self.bird = Bird((self.width, self.height), self.bird.intelligence, self.bird.targetIntelligence, experienceBuffer=self.experienceReplayBuffer)
@@ -106,12 +120,13 @@ class Flappy:
         #print(currentState)
         if random.random() > self.epsilon:
             action = np.argmax(self.bird.getAction(currentState))
+            qValues = self.bird.getAction(currentState)
+            print(qValues)
+            action = np.argmax(qValues)
             if action == 1: print("chosen flap")
         else:
-            action = random.choice([0,1])
+            action = random.choice([0,0,1])
             #print(f"random action: {action}")
-        #print(action)
-        # this is where the action will be eventually dealt with, and reward will be given
         #print(action)
         if action == 1 and not Flappy.playing:
             self.velocity = self.bird.flap(self.velocity)
@@ -124,9 +139,9 @@ class Flappy:
             self.reward += -50
             done = True
         else:
-            self.reward = 0.1
+            self.reward += 0.1
             #self.reward += max(0,1 - currentState[0]) #closer to point line of pipe, bigger reward
-        #]self.reward -= (0.005 * currentState[1]) # closer to centre of gap, bigger reward
+            self.reward += max(0, 1 - abs(currentState[1]))
 
         for pipe in self.pipes:
             if pipe.x <= 0 - pipe.width:
@@ -152,7 +167,8 @@ class Flappy:
         self.bird.learn(self.experienceReplayBuffer)
         self.frame += 1
         if done:
-            print(self.totalReward)
+            Flappy.rewards.append(self.totalReward)
+
             self.start()
 
     def handleCollisions(self):
@@ -167,7 +183,7 @@ class Flappy:
         return False
 
     def draw(self):
-        self.display.fill((220,220,220))
+        self.display.fill((180,180,180))
         pygame.draw.rect(self.display, (255,0,0), (self.bird.x, self.bird.y, self.bird.width, self.bird.height))
         for pipe in self.pipes:
            pygame.draw.rect(self.display, (0,210,0), (pipe.x, pipe.y, pipe.width, pipe.height))

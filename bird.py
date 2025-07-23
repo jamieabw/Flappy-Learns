@@ -3,7 +3,7 @@ import pygame
 from DQN.dense import DenseLayer
 from DQN.relu import Relu
 from DQN.leakyRelu import LeakyRelu
-from DQN.loss import meanSquaredError, dMeanSquaredError
+from DQN.loss import meanSquaredError, dMeanSquaredError, huberLoss, dHuberLoss
 import random
 import copy
 SIZE = (50,30)
@@ -11,16 +11,16 @@ BATCH_SIZE = 64
 GAMMA = 0.99
 class Bird:
     losses = []
-    learningRate = 3e-4
+    learningRate = 2e-4
     def __init__(self, screenSize, intelligence=None, targetIntelligence=None, experienceBuffer=None):
         self.width = SIZE[0]
         self.height = SIZE[1]
         self.x, self.y = (screenSize[0] // 6, screenSize[1] // 2)
         if intelligence is None:
             self.intelligence = [
-                DenseLayer(4, 24),
+                DenseLayer(4, 32),
                 LeakyRelu(),
-                DenseLayer(24,18),
+                DenseLayer(32,18),
                 LeakyRelu(),
                 DenseLayer(18,2)
 
@@ -48,6 +48,7 @@ class Bird:
         for experience in batch:
             state, action, reward, nextState, done = experience
             qValues = self.getAction(state)
+            #Sprint(qValues)
             if double:
                 bestAction = np.argmax(self.getAction(nextState))
                 targetQ = self.getAction(nextState, target=True)
@@ -58,13 +59,21 @@ class Bird:
                 y = reward
             else:
                 y = reward + (GAMMA * nextQValue)
-            nextQValue = np.clip(nextQValue, -1.0, 1.0)
+            #nextQValue = np.clip(nextQValue, -1.0, 1.0)
             targetQValues = np.copy(qValues)
             targetQValues[action] = y
             #print(targetQValues)
             loss = meanSquaredError(qValues, targetQValues)
+            #loss = huberLoss(qValues, targetQValues)
             losses.append(loss)
-            error = dMeanSquaredError(qValues, targetQValues)
+            #error = dMeanSquaredError(qValues, targetQValues)
+            """
+            THIS IS A POTENTIAL FIX - TEMP
+            """
+            error = np.zeros_like(qValues)
+            error[action] = 2 * (qValues[action] - y)
+
+            #error = dHuberLoss(qValues, targetQValues)
             output = error
             #print(output)
             for layer in reversed(self.intelligence):
