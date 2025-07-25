@@ -1,5 +1,8 @@
 import numpy as np
 class Activation:
+    """
+    Base class for activation functions.
+    """
     def __init__(self, function, dFunction):
         self.function  = function
         self.dFunction = dFunction

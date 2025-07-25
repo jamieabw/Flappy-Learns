@@ -1,6 +1,9 @@
 import numpy as np
 from DQN.layer import Layer
 class DenseLayer(Layer):
+    """
+    Fully connected/Dense layer implementation, uses matrix multiplication for propagations.
+    """
     def __init__(self, inputLength, outputLength):
         self.weights = np.random.randn(outputLength, inputLength) * np.sqrt(2 / inputLength)
         self.biases = np.random.randn(outputLength)
@@ -10,7 +13,6 @@ class DenseLayer(Layer):
         return np.dot(self.weights, self.input) + self.biases
     
     def backPropagation(self, dOutput, learningRate=1e-5):
-        #dOutput = np.clip(dOutput, -1.0, 1.0)
         dWeights = np.outer(dOutput, self.input)
         dBiases = dOutput
         dInput = np.dot(self.weights.T, dOutput)

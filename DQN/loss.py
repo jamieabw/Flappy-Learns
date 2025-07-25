@@ -1,30 +1,44 @@
 import numpy as np
-def meanSquaredError(prediction, expectation) -> np.array:
-    """
-    Returns the loss value, loss function used is mean squared error (this may change).
-    """
-    return np.mean((expectation - prediction) ** 2)
-def dMeanSquaredError(prediction, expectation)-> np.array:
-    """
-    Returns the derivative value of the loss function used in back prop
-    """
-    n = len(prediction)
-    return (2/n) * (prediction - expectation)
 
-def huberLoss(prediction, expectation, delta=1.0) -> np.array:
+def meanSquaredError(prediction, expectation, action) -> float:
     """
-    Returns the Huber loss.
+    Compute MSE loss only on the chosen action.
+    prediction, expectation: arrays of shape (num_actions,)
+    action: int, index of the chosen action
     """
-    error = prediction - expectation
-    isSmall = np.abs(error) <= delta
-    squaredLoss = 0.5 * error ** 2
-    linearLoss = delta * (np.abs(error) - 0.5 * delta)
-    return np.mean(np.where(isSmall, squaredLoss, linearLoss))
+    diff = expectation[action] - prediction[action]
+    return 0.5 * diff ** 2  # 0.5 factor common in MSE derivative simplification
 
-def dHuberLoss(prediction, expectation, delta=1.0) -> np.array:
+def dMeanSquaredError(prediction, expectation, action) -> np.array:
     """
-    Returns the derivative of Huber loss.
+    Derivative of MSE wrt prediction for all actions:
+    zero except chosen action where gradient is (prediction - expectation).
     """
-    error = prediction - expectation
-    grad = np.where(np.abs(error) <= delta, error, delta * np.sign(error))
+    grad = np.zeros_like(prediction)
+    grad[action] = prediction[action] - expectation[action]
+    return grad
+
+def huberLoss(prediction, expectation, action, delta=1.0) -> float:
+    """
+    Huber loss only on the chosen action.
+    """
+    error = prediction[action] - expectation[action]
+    if abs(error) <= delta:
+        return 0.5 * error ** 2
+    else:
+        return delta * (abs(error) - 0.5 * delta)
+
+def dHuberLoss(prediction, expectation, action, delta=1.0) -> np.array:
+    """
+    Derivative of Huber loss wrt prediction.
+    Zero except chosen action where derivative is:
+      error if |error| <= delta
+      delta * sign(error) otherwise
+    """
+    grad = np.zeros_like(prediction)
+    error = prediction[action] - expectation[action]
+    if abs(error) <= delta:
+        grad[action] = error
+    else:
+        grad[action] = delta * np.sign(error)
     return grad
